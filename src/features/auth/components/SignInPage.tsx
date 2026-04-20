@@ -1,6 +1,6 @@
-import { ArrowRight, Eye, LayoutDashboard, Zap } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
+import { ArrowRight, Eye, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function SignInPage() {
   return (

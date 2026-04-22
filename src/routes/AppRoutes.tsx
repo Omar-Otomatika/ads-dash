@@ -1,8 +1,10 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import { LandingPage } from "@/features/landing/LandingPage";
 import SignInPage from "@/features/auth/components/SignInPage";
+import SignUpPage from "@/features/auth/components/SignUpPage";
+import { AuthenticateWithRedirectCallback } from "@clerk/react";
 
-const routes = createBrowserRouter([
+export const router = createBrowserRouter([
   {
     path: "/",
     element: <LandingPage />,
@@ -13,15 +15,10 @@ const routes = createBrowserRouter([
   },
   {
     path: "/sign-up",
-    element: <div>Sign Up Page (TBD)</div>,
+    element: <SignUpPage />,
+  },
+  {
+    path: "/sso-callback",
+    element: <AuthenticateWithRedirectCallback />,
   },
 ]);
-
-
-const Routes = () => {
-  return (
-    <RouterProvider router={routes} />
-  )
-}
-
-export default Routes;

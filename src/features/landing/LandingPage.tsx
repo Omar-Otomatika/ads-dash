@@ -8,6 +8,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 const imgAnalyticsDashboardPreview = "https://www.figma.com/api/mcp/asset/6489cb75-e009-48ad-8788-b630ae5ab4bc";
 const imgCreativeAnalytics = "https://www.figma.com/api/mcp/asset/df490e16-e922-4e82-bf63-1225940d2d5d";
@@ -20,9 +21,9 @@ export function LandingPage() {
       <header className="fixed top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-8">
-            <a href="/" className="font-heading text-xl font-black tracking-tighter uppercase">
+            <Link to="/" className="font-heading text-xl font-black tracking-tighter uppercase">
               ADLYTICS
-            </a>
+            </Link>
             <NavigationMenu className="hidden md:flex">
               <NavigationMenuList>
                 <NavigationMenuItem>
@@ -49,10 +50,12 @@ export function LandingPage() {
             </NavigationMenu>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-              Sign In
+            <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <Link to="/sign-in">Sign In</Link>
             </Button>
-            <Button className="rounded-lg px-5">Get Started</Button>
+            <Button asChild className="rounded-lg px-5">
+              <Link to="/sign-up">Get Started</Link>
+            </Button>
           </div>
         </div>
       </header>
@@ -67,8 +70,8 @@ export function LandingPage() {
             Consolidate your marketing spend, track real-time performance, and unlock AI-driven insights without the complexity of traditional BI tools.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Button size="lg" className="relative shadow-cal-inset h-12 px-8 text-base">
-              Start Your Free Trial
+            <Button asChild size="lg" className="relative shadow-cal-inset h-12 px-8 text-base">
+              <Link to="/sign-up">Start Your Free Trial</Link>
             </Button>
             <Button size="lg" variant="outline" className="h-12 px-8 text-base shadow-sm">
               Book a Demo
@@ -182,7 +185,9 @@ export function LandingPage() {
               Join over 2,000+ high-growth marketing teams today. No credit card required to start.
             </p>
             <div className="mt-10 flex flex-wrap justify-center gap-4">
-              <Button size="lg" className="h-14 px-10 text-lg shadow-lg">Get Started Now</Button>
+              <Button asChild size="lg" className="h-14 px-10 text-lg shadow-lg">
+                <Link to="/sign-up">Get Started Now</Link>
+              </Button>
               <Button size="lg" variant="outline" className="h-14 px-10 text-lg shadow-sm">Talk to Sales</Button>
             </div>
           </div>

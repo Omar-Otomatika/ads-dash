@@ -1,204 +1,209 @@
-import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useSignIn } from "@clerk/react";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@/components/ui/input-group";
+import { Loader2 } from "lucide-react";
+
+const signInSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+type SignInValues = z.infer<typeof signInSchema>;
 
 const ASSETS = {
-  LOGO: "https://www.figma.com/api/mcp/asset/ef447ca9-a24e-4be0-9e32-1af1668d4651",
-  STAR: "https://www.figma.com/api/mcp/asset/f45be972-f1b4-4596-a093-571416471a3e",
-  GOOGLE: "https://www.figma.com/api/mcp/asset/a89d7555-2a1a-4bc9-a33a-bea0fae1da94",
-  EXECUTIVE: "https://www.figma.com/api/mcp/asset/2826d146-52e7-4a14-84c5-4e5c09d2f0e8",
-  EYE: "https://www.figma.com/api/mcp/asset/34beabfc-fce8-4399-b526-760490c995fe",
+  ILLUSTRATION: "https://www.figma.com/api/mcp/asset/24cac811-e547-4be4-8222-bcb7ea17849a",
+  GOOGLE_ICON: "https://www.figma.com/api/mcp/asset/ac681738-ab9e-439a-a49d-c63e06390bde",
 };
 
 export default function SignInPage() {
-  const [showPassword, setShowPassword] = useState(false);
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const navigate = useNavigate();
+
+  const {
+    control,
+    handleSubmit,
+    setError: setFormError,
+    formState: { errors, isSubmitting },
+  } = useForm<SignInValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = async (data: SignInValues) => {
+    if (!isLoaded) return;
+
+    try {
+      const result = await signIn.create({
+        identifier: data.email,
+        password: data.password,
+      });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        navigate("/");
+      } else {
+        console.log(JSON.stringify(result, null, 2));
+      }
+    } catch (err: any) {
+      console.error(JSON.stringify(err, null, 2));
+      setFormError("root", { 
+        message: err.errors?.[0]?.longMessage || "Invalid email or password." 
+      });
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!isLoaded) return;
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/",
+      });
+    } catch (err: any) {
+      console.error(JSON.stringify(err, null, 2));
+    }
+  };
+
+  if (!isLoaded) return null;
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-surface font-sans text-on-surface lg:flex-row">
-      {/* Left Side: Visual/Editorial Section */}
-      <section className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-primary p-16 lg:flex">
-        {/* Architectural Gradient Overlay */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#161e31] to-[#2b3347]" />
-        
-        {/* Background Blurs */}
-        <div className="absolute -bottom-48 -left-48 h-96 w-96 rounded-full bg-secondary opacity-10 blur-[50px]" />
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#100071] opacity-20 blur-[40px]" />
-
-        <div className="relative z-10 space-y-24">
-          {/* Branding */}
-          <div className="flex items-center gap-3">
-            <img src={ASSETS.LOGO} alt="" className="h-6 w-6" />
-            <h1 className="font-heading text-2xl font-extrabold tracking-[-0.6px] text-white uppercase">
-              THE ANALYTICAL ATELIER
+    <div className="flex min-h-screen w-full bg-white font-sans text-foreground">
+      {/* Left Column: Brand & Visual */}
+      <section className="hidden w-1/2 flex-col justify-between bg-[#fdf8f8] p-16 lg:flex">
+        <div className="space-y-12">
+          <Link to="/" className="font-heading text-xl font-black tracking-tighter uppercase inline-block text-foreground">
+            ADLYTICS
+          </Link>
+          
+          <div className="max-w-md space-y-6">
+            <h1 className="font-heading text-5xl font-semibold leading-[1.1] tracking-tight">
+              Turn complex data into clear outcomes.
             </h1>
-          </div>
-
-          <div className="max-w-xl space-y-12">
-            <div className="space-y-6">
-              <span className="inline-block rounded-xl bg-secondary/20 px-3 py-1 text-[10px] font-semibold tracking-[2px] text-[#89f5e7] uppercase">
-                EDITORIAL PRECISION
-              </span>
-              <h2 className="font-heading text-5xl font-extrabold leading-[1.2] tracking-[-1.2px] text-white">
-                Transform raw data<br />
-                into <span className="text-[#89f5e7]">architectural</span><br />
-                insight.
-              </h2>
-            </div>
-
-            {/* Testimonial Card (Glassmorphism) */}
-            <div className="glass relative space-y-6 rounded-lg border border-white/10 p-8 shadow-2xl shadow-on-surface/20">
-              <div className="flex gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <img key={i} src={ASSETS.STAR} alt="" className="h-3 w-3" />
-                ))}
-              </div>
-              <blockquote className="font-sans text-lg italic leading-relaxed text-[#939bb4]">
-                "The level of sophisticated curation provided by the Atelier has reduced our cognitive load by half. It's not just a dashboard; it's a strategic environment."
-              </blockquote>
-              <div className="flex items-center gap-4 pt-2">
-                <div className="relative h-12 w-12 overflow-hidden rounded-xl">
-                  <img src={ASSETS.EXECUTIVE} alt="Marcus Vane" className="h-full w-full object-cover grayscale" />
-                </div>
-                <div>
-                  <p className="font-heading text-sm font-bold text-white">Marcus Vane</p>
-                  <p className="text-[10px] font-medium tracking-[1.2px] text-[#939bb4] uppercase">
-                    CHIEF STRATEGY OFFICER, GLOBAL FLOW
-                  </p>
-                </div>
-              </div>
-            </div>
+            <p className="text-lg font-light text-muted-foreground leading-relaxed">
+              The unified analytics platform for high-performance marketing teams.
+            </p>
           </div>
         </div>
 
-        {/* Footer Legal */}
-        <div className="relative z-10 pt-12">
-          <p className="text-[10px] font-medium tracking-[2.4px] text-[#939bb4] uppercase">
-            © 2024 ANALYTICAL ATELIER. ALL RIGHTS RESERVED.
-          </p>
+        <div className="mt-12 rounded-xl border bg-white p-1 shadow-cal text-left">
+          <img 
+            src={ASSETS.ILLUSTRATION} 
+            alt="Data Visualization Interface" 
+            className="w-full rounded-lg"
+          />
         </div>
       </section>
 
-      {/* Right Side: Login Form */}
-      <section className="flex flex-[1.2] items-center justify-center bg-surface p-8 lg:p-20">
-        <div className="w-full max-w-md space-y-10 pt-10">
-          <header className="space-y-3">
-            <h3 className="font-heading text-3xl font-extrabold tracking-[-0.75px] text-primary">
-              Welcome Back
-            </h3>
-            <p className="text-base text-on-surface-variant">
-              Enter your credentials to access your workspace.
-            </p>
-          </header>
+      {/* Right Column: Sign In Form */}
+      <section className="flex flex-1 items-center justify-center p-8">
+        <Card className="w-full max-w-[440px] border-none p-12 shadow-cal bg-white">
+          <div className="space-y-8">
+            <header className="space-y-2 text-left">
+              <h2 className="font-heading text-3xl font-semibold tracking-tight">Welcome back</h2>
+              <p className="font-light text-muted-foreground">
+                Enter your credentials to access your dashboard.
+              </p>
+            </header>
 
-          <div className="space-y-6">
-            {/* Social Login */}
-            <Button 
-              variant="outline" 
-              className="h-12 w-full justify-center gap-3 border-none bg-surface-container-low font-semibold text-primary shadow-none transition-all hover:bg-surface-container-low/80"
-            >
-              <img src={ASSETS.GOOGLE} alt="" className="h-5 w-5" />
-              Google
-            </Button>
-
-            {/* Divider */}
-            <div className="relative py-4">
-              <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full border-outline-variant/30" />
-              </div>
-              <div className="relative flex justify-center uppercase">
-                <span className="bg-surface px-2 text-[10px] font-semibold tracking-[1.2px] text-on-surface-variant">
-                  OR CONTINUE WITH
-                </span>
-              </div>
-            </div>
-
-            {/* Form */}
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-[10px] font-semibold tracking-[1.2px] text-on-surface-variant uppercase">
-                  EMAIL ADDRESS
-                </Label>
-                <div className="relative">
-                  <Input 
-                    id="email" 
-                    placeholder="name@company.com" 
-                    className="h-14 rounded-lg border-x-0 border-t-0 border-b border-[#6b7280] bg-white px-4 text-base font-medium placeholder:text-[#737780] focus-visible:ring-0 focus-visible:border-secondary focus-visible:border-b-2"
-                  />
-                </div>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 text-left">
+              {errors.root && (
+                <p className="text-xs font-medium text-destructive">{errors.root.message}</p>
+              )}
+              
+              <div className="space-y-2 text-left">
+                <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
+                <Controller
+                  name="email"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="space-y-1">
+                      <Input
+                        {...field}
+                        id="email"
+                        placeholder="name@company.com"
+                        type="email"
+                        className={cn(errors.email && "border-destructive ring-destructive/20")}
+                      />
+                      {errors.email && (
+                        <p className="text-[10px] font-medium text-destructive">{errors.email.message}</p>
+                      )}
+                    </div>
+                  )}
+                />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-[10px] font-semibold tracking-[1.2px] text-on-surface-variant uppercase">
-                    PASSWORD
-                  </Label>
-                  <a href="#" className="text-[11px] font-semibold text-secondary hover:underline">
-                    Forgot Password?
+                  <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                  <a href="#" className="text-xs font-medium text-blue-500 hover:underline">
+                    Forgot password?
                   </a>
                 </div>
-                <InputGroup className="h-14 rounded-lg border-x-0 border-t-0 border-b border-[#6b7280] bg-white px-4 has-[[data-slot=input-group-control]:focus-visible]:border-b-2 has-[[data-slot=input-group-control]:focus-visible]:border-secondary has-[[data-slot=input-group-control]:focus-visible]:ring-0 shadow-none transition-all">
-                  <InputGroupInput 
-                    id="password" 
-                    placeholder="••••••••" 
-                    type={showPassword ? "text" : "password"} 
-                    className="h-full px-0 text-base font-medium placeholder:text-[#737780]"
-                  />
-                  <InputGroupAddon align="inline-end">
-                    <InputGroupButton 
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="hover:bg-transparent"
-                    >
-                      <img src={ASSETS.EYE} alt="Toggle visibility" className={cn("h-4 w-4 transition-opacity", showPassword ? "opacity-100" : "opacity-50")} />
-                    </InputGroupButton>
-                  </InputGroupAddon>
-                </InputGroup>
+                <Controller
+                  name="password"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="space-y-1">
+                      <Input
+                        {...field}
+                        id="password"
+                        placeholder="••••••••"
+                        type="password"
+                        className={cn(errors.password && "border-destructive ring-destructive/20")}
+                      />
+                      {errors.password && (
+                        <p className="text-[10px] font-medium text-destructive">{errors.password.message}</p>
+                      )}
+                    </div>
+                  )}
+                />
               </div>
 
-              <div className="flex items-center space-x-3">
-                <Checkbox id="remember" className="rounded-sm border-outline-variant" />
-                <Label htmlFor="remember" className="text-sm font-medium text-on-surface-variant">
-                  Remember me for 30 days
-                </Label>
-              </div>
-
-              <Button className="h-14 w-full rounded-lg bg-gradient-to-r from-primary to-primary-container text-sm font-bold tracking-[0.35px] text-white shadow-xl shadow-primary/10 transition-all hover:opacity-90 active:scale-[0.98] uppercase">
-                SIGN IN TO ATELIER
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="relative w-full h-12 text-base font-medium shadow-cal-inset"
+              >
+                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing In...</> : "Sign In"}
               </Button>
             </form>
-          </div>
 
-          {/* Bottom Nav */}
-          <div className="flex flex-col items-center space-y-6 pt-10">
-            <p className="text-sm text-on-surface-variant">
-              Don't have an account yet?{" "}
-              <a href="#" className="inline-block border-b-2 border-secondary font-bold text-primary transition-all hover:text-secondary">
-                Request Access
-              </a>
-            </p>
+            <div className="relative flex items-center justify-center">
+              <Separator className="absolute w-full" />
+              <span className="relative bg-white px-3 text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
+                OR CONTINUE WITH
+              </span>
+            </div>
 
-            <nav className="flex gap-6 pt-10 lg:absolute lg:bottom-8 lg:right-8">
-              {['PRIVACY', 'TERMS', 'SECURITY'].map((link) => (
-                <a 
-                  key={link} 
-                  href="#" 
-                  className="text-[10px] font-semibold tracking-[2px] text-[#737780] transition-colors hover:text-primary uppercase"
-                >
-                  {link}
-                </a>
-              ))}
-            </nav>
+            <Button 
+              variant="outline" 
+              className="w-full h-12 gap-3 text-base font-medium shadow-sm"
+              onClick={handleGoogleSignIn}
+            >
+              <img src={ASSETS.GOOGLE_ICON} alt="" className="h-5 w-5" />
+              Sign With Google
+            </Button>
+
+            <footer className="text-center text-sm font-medium text-muted-foreground">
+              New to Adlytics?{" "}
+              <Link to="/sign-up" className="font-bold text-foreground hover:underline">
+                Create an account
+              </Link>
+            </footer>
           </div>
-        </div>
+        </Card>
       </section>
     </div>
   );

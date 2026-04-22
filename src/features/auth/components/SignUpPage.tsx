@@ -12,11 +12,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { Building2, Network, Loader2 } from "lucide-react";
+import { isClerkAPIResponseError } from "@clerk/react/errors";
 
 const signUpSchema = z.object({
   accountType: z.enum(["branch", "agency"]),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  terms: z.literal(true, {
+    errorMap: () => ({ message: "You must agree to the terms" }),
+  }),
 });
 
 type SignUpValues = z.infer<typeof signUpSchema>;
@@ -40,6 +44,8 @@ export default function SignUpPage() {
       accountType: "branch",
       email: "",
       password: "",
+      // @ts-ignore - boolean handling for checkbox
+      terms: false,
     },
   });
 
@@ -54,18 +60,23 @@ export default function SignUpPage() {
       });
 
       if (res.error) {
-         setError(res.error.message);
-         return;
+        setError(res.error.message);
+        return;
       }
 
-      // Metadata handling in v6 might be different, but typically it's part of the user object after verification or via update
-      // For now, let's proceed with verification
       await signUp.verifications.sendEmailCode();
       setVerifying(true);
     } catch (err: any) {
-      console.error(err);
-      setError("An unexpected error occurred during sign up.");
+      if (isClerkAPIResponseError(err)) {
+        setError(err.errors[0]?.longMessage || "An error occurred during sign up.");
+      } else {
+        setError("An unexpected error occurred.");
+      }
     }
+  };
+
+  const onValidationError = (errors: any) => {
+    console.log("Validation errors:", errors);
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -93,8 +104,11 @@ export default function SignUpPage() {
         setError("Sign up could not be completed.");
       }
     } catch (err: any) {
-      console.error(err);
-      setError("Invalid verification code.");
+      if (isClerkAPIResponseError(err)) {
+        setError(err.errors[0]?.longMessage || "Invalid verification code.");
+      } else {
+        setError("Verification failed.");
+      }
     }
   };
 
@@ -164,7 +178,7 @@ export default function SignUpPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-4xl space-y-12">
+      <form onSubmit={handleSubmit(onSubmit, onValidationError)} className="w-full max-w-4xl space-y-12">
         <Controller
           name="accountType"
           control={control}
@@ -250,14 +264,34 @@ export default function SignUpPage() {
                 />
               </div>
 
-              <div className="flex items-start space-x-3 py-2 text-left">
-                <Checkbox id="terms" className="mt-1" required />
-                <Label htmlFor="terms" className="text-sm font-light leading-snug cursor-pointer">
-                  I agree to the <a href="#" className="underline">Terms of Service</a> and <a href="#" className="underline">Privacy Policy</a>.
-                </Label>
+              <div className="flex flex-col gap-1 py-2 text-left">
+                <div className="flex items-start space-x-3">
+                  <Controller
+                    name="terms"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox 
+                        id="terms" 
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="mt-1" 
+                      />
+                    )}
+                  />
+                  <Label htmlFor="terms" className="text-sm font-light leading-snug cursor-pointer">
+                    I agree to the <a href="#" className="underline">Terms of Service</a> and <a href="#" className="underline">Privacy Policy</a>.
+                  </Label>
+                </div>
+                {errors.terms && (
+                  <p className="text-[10px] font-medium text-destructive">{errors.terms.message}</p>
+                )}
               </div>
 
-              <Button type="submit" disabled={isFetching} className="w-full h-14 text-base font-medium shadow-cal-inset">
+              <Button 
+                type="submit" 
+                disabled={isFetching} 
+                className="w-full h-14 text-base font-medium shadow-cal-inset"
+              >
                 {isFetching ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating...</> : "Create Account"}
               </Button>
             </div>

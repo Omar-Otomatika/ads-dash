@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { isClerkAPIResponseError } from "@clerk/react/errors";
 
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -24,14 +25,16 @@ const ASSETS = {
 };
 
 export default function SignInPage() {
-  const { isLoaded, signIn, setActive } = useSignIn();
+  const { signIn, fetchStatus } = useSignIn();
   const navigate = useNavigate();
+
+  const isFetching = fetchStatus === "fetching";
 
   const {
     control,
     handleSubmit,
     setError: setFormError,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
@@ -41,30 +44,41 @@ export default function SignInPage() {
   });
 
   const onSubmit = async (data: SignInValues) => {
-    if (!isLoaded) return;
+    if (!signIn) return;
 
     try {
-      const result = await signIn.create({
+      const res = await signIn.password({
         identifier: data.email,
         password: data.password,
       });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        navigate("/");
+      if (res.error) {
+        setFormError("root", { message: res.error.message });
+        return;
+      }
+
+      if (signIn.status === "complete") {
+        await signIn.finalize({
+          navigate: (params) => {
+            navigate(params.decorateUrl("/"));
+          }
+        });
       } else {
-        console.log(JSON.stringify(result, null, 2));
+        console.log("Sign in status:", signIn.status);
       }
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
-      setFormError("root", { 
-        message: err.errors?.[0]?.longMessage || "Invalid email or password." 
-      });
+      if (isClerkAPIResponseError(err)) {
+        setFormError("root", { 
+          message: err.errors[0]?.longMessage || "Invalid email or password." 
+        });
+      } else {
+        setFormError("root", { message: "An unexpected error occurred." });
+      }
     }
   };
 
   const handleGoogleSignIn = async () => {
-    if (!isLoaded) return;
+    if (!signIn) return;
     try {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
@@ -72,11 +86,11 @@ export default function SignInPage() {
         redirectUrlComplete: "/",
       });
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
+      console.error(err);
     }
   };
 
-  if (!isLoaded) return null;
+  if (!signIn) return null;
 
   return (
     <div className="flex min-h-screen w-full bg-white font-sans text-foreground">
@@ -173,10 +187,10 @@ export default function SignInPage() {
 
               <Button 
                 type="submit" 
-                disabled={isSubmitting}
+                disabled={isFetching}
                 className="relative w-full h-12 text-base font-medium shadow-cal-inset"
               >
-                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing In...</> : "Sign In"}
+                {isFetching ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing In...</> : "Sign In"}
               </Button>
             </form>
 

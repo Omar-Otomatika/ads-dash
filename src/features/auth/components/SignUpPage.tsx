@@ -4,13 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
+import { useSignUp } from "@clerk/react";
+import { isClerkAPIResponseError } from "@clerk/react/errors";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Building2, Loader2, Network } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import * as z from "zod";
-import { useAuthSignUp } from "../hooks/use-auth-signup";
 
 const signUpSchema = z.object({
   accountType: z.enum(["brand", "agency"]),
@@ -21,11 +22,13 @@ const signUpSchema = z.object({
 type SignUpValues = z.infer<typeof signUpSchema>;
 
 export default function SignUpPage() {
+  const { signUp, fetchStatus } = useSignUp();
   const [verifying, setVerifying] = useState(false);
   const [code, setCode] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const { signUp, verify, resend, isLoaded, getErrorMessage } = useAuthSignUp();
+  const isFetching = fetchStatus === "fetching";
 
   const {
     control,
@@ -41,39 +44,64 @@ export default function SignUpPage() {
   });
 
   const onSubmit = async (data: SignUpValues) => {
-    signUp.mutate(
-      {
-        email: data.email_address,
+    if (!signUp) return;
+    setError("");
+
+    try {
+      await signUp.password({
+        emailAddress: data.email_address,
         password: data.password,
         unsafeMetadata: {
           account_type: data.accountType,
         },
-      },
-      {
-        onSuccess: () => {
-          setVerifying(true);
-        },
-      },
-    );
+      });
+
+      await signUp.verifications.sendEmailCode();
+      setVerifying(true);
+    } catch (err: any) {
+      if (isClerkAPIResponseError(err)) {
+        setError(err.errors[0]?.longMessage || "An error occurred.");
+      } else {
+        setError("An unexpected error occurred.");
+      }
+    }
   };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    verify.mutate(code, {
-      onSuccess: (res) => {
-        console.log("======== from verfiy: ", res)
-        if (res.status === "complete") {
-          navigate("/");
-        }
-      },
-    });
+    if (!signUp) return;
+    setError("");
+
+    try {
+      const res = await signUp.verifications.verifyEmailCode({
+        code,
+      });
+
+      if (!res.error) {
+        await signUp.finalize({
+          navigate: (params) => {
+            navigate(params.decorateUrl("/"));
+          },
+        });
+      }
+    } catch (err: any) {
+      if (isClerkAPIResponseError(err)) {
+        setError(err.errors[0]?.longMessage || "Invalid code.");
+      } else {
+        setError("Verification failed.");
+      }
+    }
   };
 
-  const handleResend = () => {
-    resend.mutate();
+  const handleResend = async () => {
+    if (!signUp) return;
+    try {
+      await signUp.verifications.sendEmailCode();
+      setError("New code sent!");
+    } catch (err: any) {
+      setError("Failed to resend code.");
+    }
   };
-
-  if (!isLoaded) return null;
 
   if (verifying) {
     return (
@@ -97,24 +125,24 @@ export default function SignUpPage() {
                 required
               />
             </div>
-            {(signUp.error || verify.error || resend.isSuccess) && (
+            {error && (
               <p
                 className={cn(
                   "text-xs font-medium",
-                  resend.isSuccess ? "text-green-600" : "text-destructive",
+                  error.includes("sent")
+                    ? "text-green-600"
+                    : "text-destructive",
                 )}
               >
-                {resend.isSuccess
-                  ? "New code sent!"
-                  : getErrorMessage(signUp.error || verify.error)}
+                {error}
               </p>
             )}
             <Button
               type="submit"
-              disabled={verify.isPending}
+              disabled={isFetching}
               className="w-full h-14 text-base font-medium shadow-cal-inset"
             >
-              {verify.isPending ? (
+              {isFetching ? (
                 <Loader2 className="animate-spin" />
               ) : (
                 "Verify Email"
@@ -125,12 +153,10 @@ export default function SignUpPage() {
                 type="button"
                 variant="ghost"
                 onClick={handleResend}
-                disabled={resend.isPending}
+                disabled={isFetching}
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
-                {resend.isPending
-                  ? "Sending..."
-                  : "I didn't receive a code. Resend"}
+                {isFetching ? "Sending..." : "I didn't receive a code. Resend"}
               </Button>
               <Button
                 type="button"
@@ -209,10 +235,8 @@ export default function SignUpPage() {
             </h2>
 
             <div className="space-y-6 text-left">
-              {signUp.error && (
-                <p className="text-xs font-medium text-destructive">
-                  {getErrorMessage(signUp.error)}
-                </p>
+              {error && (
+                <p className="text-xs font-medium text-destructive">{error}</p>
               )}
 
               <div className="space-y-2 text-left">
@@ -266,10 +290,10 @@ export default function SignUpPage() {
 
               <Button
                 type="submit"
-                disabled={signUp.isPending}
+                disabled={isFetching}
                 className="w-full h-14 text-base font-medium shadow-cal-inset"
               >
-                {signUp.isPending ? (
+                {isFetching ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creating...

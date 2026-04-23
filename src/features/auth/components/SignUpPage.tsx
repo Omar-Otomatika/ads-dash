@@ -1,38 +1,31 @@
-import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useSignUp } from "@clerk/react";
-import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import { Building2, Network, Loader2 } from "lucide-react";
-import { isClerkAPIResponseError } from "@clerk/react/errors";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Building2, Loader2, Network } from "lucide-react";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { Link, useNavigate } from "react-router-dom";
+import * as z from "zod";
+import { useAuthSignUp } from "../hooks/use-auth-signup";
 
 const signUpSchema = z.object({
-  accountType: z.enum(["branch", "agency"]),
-  email: z.string().email("Invalid email address"),
+  accountType: z.enum(["brand", "agency"]),
+  email_address: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  terms: z.literal(true, {
-    errorMap: () => ({ message: "You must agree to the terms" }),
-  }),
 });
 
 type SignUpValues = z.infer<typeof signUpSchema>;
 
 export default function SignUpPage() {
-  const { signUp, fetchStatus } = useSignUp();
   const [verifying, setVerifying] = useState(false);
   const [code, setCode] = useState("");
-  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const isFetching = fetchStatus === "fetching";
+  const { signUp, verify, resend, isLoaded, getErrorMessage } = useAuthSignUp();
 
   const {
     control,
@@ -41,125 +34,110 @@ export default function SignUpPage() {
   } = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      accountType: "branch",
-      email: "",
+      accountType: "brand",
+      email_address: "",
       password: "",
-      // @ts-ignore - boolean handling for checkbox
-      terms: false,
     },
   });
 
   const onSubmit = async (data: SignUpValues) => {
-    if (!signUp) return;
-    setError("");
-
-    try {
-      const res = await signUp.password({
-        emailAddress: data.email,
+    signUp.mutate(
+      {
+        email: data.email_address,
         password: data.password,
-      });
-
-      if (res.error) {
-        setError(res.error.message);
-        return;
-      }
-
-      await signUp.verifications.sendEmailCode();
-      setVerifying(true);
-    } catch (err: any) {
-      if (isClerkAPIResponseError(err)) {
-        setError(err.errors[0]?.longMessage || "An error occurred during sign up.");
-      } else {
-        setError("An unexpected error occurred.");
-      }
-    }
-  };
-
-  const onValidationError = (errors: any) => {
-    console.log("Validation errors:", errors);
+        unsafeMetadata: {
+          account_type: data.accountType,
+        },
+      },
+      {
+        onSuccess: () => {
+          setVerifying(true);
+        },
+      },
+    );
   };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signUp) return;
-    setError("");
-
-    try {
-      const res = await signUp.verifications.verifyEmailCode({
-        code,
-      });
-
-      if (res.error) {
-        setError(res.error.message);
-        return;
-      }
-
-      if (signUp.status === "complete") {
-        await signUp.finalize({
-          navigate: (params) => {
-            navigate(params.decorateUrl("/"));
-          }
-        });
-      } else {
-        setError("Sign up could not be completed.");
-      }
-    } catch (err: any) {
-      if (isClerkAPIResponseError(err)) {
-        setError(err.errors[0]?.longMessage || "Invalid verification code.");
-      } else {
-        setError("Verification failed.");
-      }
-    }
+    verify.mutate(code, {
+      onSuccess: (res) => {
+        console.log("======== from verfiy: ", res)
+        if (res.status === "complete") {
+          navigate("/");
+        }
+      },
+    });
   };
 
-  const resendCode = async () => {
-    if (!signUp) return;
-    try {
-      await signUp.verifications.sendEmailCode();
-      setError("New code sent!");
-    } catch (err: any) {
-      setError("Failed to resend code.");
-    }
+  const handleResend = () => {
+    resend.mutate();
   };
 
-  if (!signUp) return null;
+  if (!isLoaded) return null;
 
   if (verifying) {
     return (
-      <div className="min-h-screen bg-[#fdf8f8] font-sans text-foreground flex flex-col items-center py-20 px-6">
-        <Card className="w-full max-w-md p-10 border-none shadow-cal bg-white text-center">
-          <h2 className="font-heading text-2xl font-semibold mb-4">Verify your email</h2>
+      <div className="min-h-screen bg-background font-sans text-foreground flex flex-col items-center py-20 px-6">
+        <Card className="w-full max-w-md p-10 border-none shadow-cal bg-card text-center">
+          <h2 className="text-2xl font-semibold mb-4">Verify your email</h2>
           <p className="text-muted-foreground font-light mb-8 text-sm">
             We've sent a verification code to your email. Please enter it below.
           </p>
           <form onSubmit={handleVerify} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="code" className="sr-only">Verification Code</Label>
+              <Label htmlFor="code" className="sr-only">
+                Verification Code
+              </Label>
               <Input
                 id="code"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="000000"
-                className="bg-[#f5f5f5] border-none h-14 text-center text-2xl tracking-[0.5em] font-bold shadow-none focus-visible:ring-1"
+                className="bg-secondary border-none h-14 text-center text-2xl tracking-[0.5em] font-bold shadow-none focus-visible:ring-1"
                 required
               />
             </div>
-            {error && (
-              <p className={cn(
-                "text-xs font-medium",
-                error.includes("sent") ? "text-green-600" : "text-destructive"
-              )}>
-                {error}
+            {(signUp.error || verify.error || resend.isSuccess) && (
+              <p
+                className={cn(
+                  "text-xs font-medium",
+                  resend.isSuccess ? "text-green-600" : "text-destructive",
+                )}
+              >
+                {resend.isSuccess
+                  ? "New code sent!"
+                  : getErrorMessage(signUp.error || verify.error)}
               </p>
             )}
-            <Button type="submit" disabled={isFetching} className="w-full h-14 text-base font-medium shadow-cal-inset">
-              {isFetching ? <Loader2 className="animate-spin" /> : "Verify Email"}
+            <Button
+              type="submit"
+              disabled={verify.isPending}
+              className="w-full h-14 text-base font-medium shadow-cal-inset"
+            >
+              {verify.isPending ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                "Verify Email"
+              )}
             </Button>
             <div className="flex flex-col gap-2">
-              <Button type="button" variant="ghost" onClick={resendCode} className="text-xs text-muted-foreground hover:text-foreground">
-                I didn't receive a code. Resend
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleResend}
+                disabled={resend.isPending}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                {resend.isPending
+                  ? "Sending..."
+                  : "I didn't receive a code. Resend"}
               </Button>
-              <Button type="button" variant="ghost" onClick={() => setVerifying(false)} className="text-xs text-muted-foreground hover:text-foreground">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setVerifying(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
                 Back to Sign Up
               </Button>
             </div>
@@ -170,15 +148,21 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fdf8f8] font-sans text-foreground flex flex-col items-center py-20 px-6">
+    <div className="min-h-screen bg-background font-sans text-foreground flex flex-col items-center py-20 px-6">
       <div className="text-center max-w-2xl space-y-4 mb-16">
-        <h1 className="font-heading text-5xl font-semibold tracking-tight">Create your account</h1>
+        <h1 className="text-5xl font-semibold tracking-tight">
+          Create your account
+        </h1>
         <p className="text-muted-foreground font-light leading-relaxed">
-          Join the world's most advanced analytics platform for performance marketing. Choose how you'll be using Adlytics.
+          Join the world's most advanced analytics platform for performance
+          marketing. Choose how you'll be using Adlytics.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit, onValidationError)} className="w-full max-w-4xl space-y-12">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="w-full max-w-4xl space-y-12"
+      >
         <Controller
           name="accountType"
           control={control}
@@ -189,18 +173,22 @@ export default function SignUpPage() {
               className="grid md:grid-cols-2 gap-6"
             >
               <div>
-                <RadioGroupItem value="branch" id="branch" className="sr-only" />
-                <Label htmlFor="branch" className="cursor-pointer h-full block">
+                <RadioGroupItem value="brand" id="brand" className="sr-only" />
+                <Label htmlFor="brand" className="cursor-pointer h-full block">
                   <AccountTypeCard
-                    title="Branch"
-                    description="Perfect for individual businesses managing their own locations, local SEO, and branch-specific performance tracking."
+                    title="Brand"
+                    description="Perfect for individual businesses managing their own locations, local SEO, and brand-specific performance tracking."
                     icon={<Building2 className="w-6 h-6" />}
-                    selected={field.value === "branch"}
+                    selected={field.value === "brand"}
                   />
                 </Label>
               </div>
               <div>
-                <RadioGroupItem value="agency" id="agency" className="sr-only" />
+                <RadioGroupItem
+                  value="agency"
+                  id="agency"
+                  className="sr-only"
+                />
                 <Label htmlFor="agency" className="cursor-pointer h-full block">
                   <AccountTypeCard
                     title="Agency"
@@ -215,16 +203,24 @@ export default function SignUpPage() {
         />
 
         <div className="flex justify-center">
-          <Card className="w-full max-w-md p-10 border-none shadow-cal bg-white">
-            <h2 className="font-heading text-xl font-semibold mb-8 text-left">Account Details</h2>
-            
+          <Card className="w-full max-w-md p-10 border-none shadow-cal bg-card">
+            <h2 className="text-xl font-semibold mb-8 text-left">
+              Account Details
+            </h2>
+
             <div className="space-y-6 text-left">
-              {error && <p className="text-xs font-medium text-destructive">{error}</p>}
-              
+              {signUp.error && (
+                <p className="text-xs font-medium text-destructive">
+                  {getErrorMessage(signUp.error)}
+                </p>
+              )}
+
               <div className="space-y-2 text-left">
-                <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email address
+                </Label>
                 <Controller
-                  name="email"
+                  name="email_address"
                   control={control}
                   render={({ field }) => (
                     <div className="space-y-1">
@@ -232,10 +228,12 @@ export default function SignUpPage() {
                         {...field}
                         id="email"
                         placeholder="name@company.com"
-                        className="bg-[#f5f5f5] border-none h-12 px-4 shadow-none focus-visible:ring-1"
+                        className="bg-secondary border-none h-12 px-4 shadow-none focus-visible:ring-1"
                       />
-                      {errors.email && (
-                        <p className="text-[10px] font-medium text-destructive">{errors.email.message}</p>
+                      {errors.email_address && (
+                        <p className="text-[10px] font-medium text-destructive">
+                          {errors.email_address.message}
+                        </p>
                       )}
                     </div>
                   )}
@@ -254,50 +252,42 @@ export default function SignUpPage() {
                         id="password"
                         type="password"
                         placeholder="••••••••"
-                        className="bg-[#f5f5f5] border-none h-12 px-4 shadow-none focus-visible:ring-1"
+                        className="bg-secondary border-none h-12 px-4 shadow-none focus-visible:ring-1"
                       />
                       {errors.password && (
-                        <p className="text-[10px] font-medium text-destructive">{errors.password.message}</p>
+                        <p className="text-[10px] font-medium text-destructive">
+                          {errors.password.message}
+                        </p>
                       )}
                     </div>
                   )}
                 />
               </div>
 
-              <div className="flex flex-col gap-1 py-2 text-left">
-                <div className="flex items-start space-x-3">
-                  <Controller
-                    name="terms"
-                    control={control}
-                    render={({ field }) => (
-                      <Checkbox 
-                        id="terms" 
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="mt-1" 
-                      />
-                    )}
-                  />
-                  <Label htmlFor="terms" className="text-sm font-light leading-snug cursor-pointer">
-                    I agree to the <a href="#" className="underline">Terms of Service</a> and <a href="#" className="underline">Privacy Policy</a>.
-                  </Label>
-                </div>
-                {errors.terms && (
-                  <p className="text-[10px] font-medium text-destructive">{errors.terms.message}</p>
-                )}
-              </div>
-
-              <Button 
-                type="submit" 
-                disabled={isFetching} 
+              <Button
+                type="submit"
+                disabled={signUp.isPending}
                 className="w-full h-14 text-base font-medium shadow-cal-inset"
               >
-                {isFetching ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating...</> : "Create Account"}
+                {signUp.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </div>
 
             <footer className="mt-8 text-center text-sm font-light">
-              Already have an account? <Link to="/sign-in" className="font-bold text-foreground hover:underline">Sign in</Link>
+              Already have an account?{" "}
+              <Link
+                to="/sign-in"
+                className="font-bold text-foreground hover:underline text-base ml-1"
+              >
+                Sign in
+              </Link>
             </footer>
           </Card>
         </div>
@@ -306,18 +296,45 @@ export default function SignUpPage() {
   );
 }
 
-function AccountTypeCard({ title, description, icon, selected }: { title: string; description: string; icon: React.ReactNode; selected: boolean; }) {
+function AccountTypeCard({
+  title,
+  description,
+  icon,
+  selected,
+}: {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  selected: boolean;
+}) {
   return (
-    <Card className={cn("p-8 bg-white border-none shadow-cal transition-all relative overflow-hidden flex flex-col gap-6 h-full", selected ? "ring-2 ring-primary" : "hover:scale-[1.01]")}>
-      <div className="w-full aspect-[4/3] bg-[#e5e5e5] rounded-lg flex items-center justify-center">
-         <div className="bg-white p-4 rounded-lg shadow-sm border">{icon}</div>
+    <Card
+      className={cn(
+        "p-8 bg-card border-none shadow-cal transition-all relative overflow-hidden flex flex-col gap-6 h-full",
+        selected ? "ring-2 ring-primary" : "hover:scale-[1.01]",
+      )}
+    >
+      <div className="w-full aspect-[4/3] bg-muted rounded-lg flex items-center justify-center">
+        <div className="bg-card p-4 rounded-lg shadow-sm border">{icon}</div>
       </div>
       <div className="space-y-3 pr-8 text-left">
-        <div className="flex items-center gap-2">{icon}<h3 className="font-heading text-2xl font-semibold">{title}</h3></div>
-        <p className="text-sm font-light text-muted-foreground leading-relaxed">{description}</p>
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="text-2xl font-semibold">{title}</h3>
+        </div>
+        <p className="text-sm font-light text-muted-foreground leading-relaxed">
+          {description}
+        </p>
       </div>
       <div className="absolute bottom-6 right-6">
-        <div className={cn("w-5 h-5 rounded-full border flex items-center justify-center transition-colors", selected ? "bg-primary border-primary text-white" : "border-muted-foreground/30")}>
+        <div
+          className={cn(
+            "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
+            selected
+              ? "bg-primary border-primary text-white"
+              : "border-muted-foreground/30",
+          )}
+        >
           {selected && <div className="w-2 h-2 rounded-full bg-white" />}
         </div>
       </div>

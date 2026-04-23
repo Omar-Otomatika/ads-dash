@@ -8,6 +8,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
+import { Show, SignOutButton } from "@clerk/react";
 import { Link } from "react-router-dom";
 
 const imgAnalyticsDashboardPreview = "https://www.figma.com/api/mcp/asset/6489cb75-e009-48ad-8788-b630ae5ab4bc";
@@ -50,12 +51,24 @@ export function LandingPage() {
             </NavigationMenu>
           </div>
           <div className="flex items-center gap-4">
-            <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
-              <Link to="/sign-in">Sign In</Link>
-            </Button>
-            <Button asChild className="rounded-lg px-5">
-              <Link to="/sign-up">Get Started</Link>
-            </Button>
+            <Show when="signed-out">
+              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                <Link to="/sign-in">Sign In</Link>
+              </Button>
+              <Button className="rounded-lg px-5">
+                <Link to="/sign-up">Get Started</Link>
+              </Button>
+              </Show>
+              <Show when="signed-in">
+              <SignOutButton>
+                <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                  Sign Out
+                </Button>
+              </SignOutButton>
+              <Button className="rounded-lg px-5">
+                <Link to="/dashboard">Go to Dashboard</Link>
+              </Button>
+              </Show>
           </div>
         </div>
       </header>

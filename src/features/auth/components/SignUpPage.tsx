@@ -14,7 +14,7 @@ import { Link, useNavigate } from "react-router-dom";
 import * as z from "zod";
 
 const signUpSchema = z.object({
-  accountType: z.enum(["brand", "agency"]),
+  accountType: z.enum(["branch", "agency"]),
   email_address: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
@@ -22,7 +22,7 @@ const signUpSchema = z.object({
 type SignUpValues = z.infer<typeof signUpSchema>;
 
 export default function SignUpPage() {
-  const { signUp, fetchStatus } = useSignUp();
+  const { signUp, fetchStatus, errors: clerkErrors } = useSignUp();
   const [verifying, setVerifying] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -37,7 +37,7 @@ export default function SignUpPage() {
   } = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      accountType: "brand",
+      accountType: "branch",
       email_address: "",
       password: "",
     },
@@ -51,6 +51,9 @@ export default function SignUpPage() {
       await signUp.password({
         emailAddress: data.email_address,
         password: data.password,
+      });
+
+      await signUp.update({
         unsafeMetadata: {
           account_type: data.accountType,
         },
@@ -73,11 +76,11 @@ export default function SignUpPage() {
     setError("");
 
     try {
-      const res = await signUp.verifications.verifyEmailCode({
+      await signUp.verifications.verifyEmailCode({
         code,
       });
 
-      if (!res.error) {
+      if (signUp.status === "complete") {
         await signUp.finalize({
           navigate: (params) => {
             navigate(params.decorateUrl("/"));
@@ -103,6 +106,9 @@ export default function SignUpPage() {
     }
   };
 
+  // Combine manual error with Clerk's error object if present
+  const displayError = error || clerkErrors?.message;
+
   if (verifying) {
     return (
       <div className="min-h-screen bg-background font-sans text-foreground flex flex-col items-center py-20 px-6">
@@ -125,16 +131,16 @@ export default function SignUpPage() {
                 required
               />
             </div>
-            {error && (
+            {displayError && (
               <p
                 className={cn(
                   "text-xs font-medium",
-                  error.includes("sent")
+                  displayError.includes("sent")
                     ? "text-green-600"
                     : "text-destructive",
                 )}
               >
-                {error}
+                {displayError}
               </p>
             )}
             <Button
@@ -199,13 +205,13 @@ export default function SignUpPage() {
               className="grid md:grid-cols-2 gap-6"
             >
               <div>
-                <RadioGroupItem value="brand" id="brand" className="sr-only" />
-                <Label htmlFor="brand" className="cursor-pointer h-full block">
+                <RadioGroupItem value="branch" id="branch" className="sr-only" />
+                <Label htmlFor="branch" className="cursor-pointer h-full block">
                   <AccountTypeCard
-                    title="Brand"
-                    description="Perfect for individual businesses managing their own locations, local SEO, and brand-specific performance tracking."
+                    title="Branch"
+                    description="Perfect for individual businesses managing their own locations, local SEO, and branch-specific performance tracking."
                     icon={<Building2 className="w-6 h-6" />}
-                    selected={field.value === "brand"}
+                    selected={field.value === "branch"}
                   />
                 </Label>
               </div>
@@ -235,8 +241,8 @@ export default function SignUpPage() {
             </h2>
 
             <div className="space-y-6 text-left">
-              {error && (
-                <p className="text-xs font-medium text-destructive">{error}</p>
+              {displayError && (
+                <p className="text-xs font-medium text-destructive">{displayError}</p>
               )}
 
               <div className="space-y-2 text-left">

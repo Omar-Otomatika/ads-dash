@@ -51,9 +51,6 @@ export default function SignUpPage() {
       await signUp.password({
         emailAddress: data.email_address,
         password: data.password,
-      });
-
-      await signUp.update({
         unsafeMetadata: {
           account_type: data.accountType,
         },

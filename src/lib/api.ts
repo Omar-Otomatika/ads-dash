@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAuthStore } from '@/hooks/use-auth-store';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_SERVER_API,
@@ -8,13 +9,13 @@ const api = axios.create({
   },
 });
 
-// Interceptor to add auth token if available
-// Note: In a real app, you'd use Clerk's getToken() in a hook or provider
-// and set this dynamically. This is a baseline setup.
+// Interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    // Add logic here to include tokens from local storage or state
-    // For Clerk, it's usually better to use the useAuth() hook in components
+    const token = useAuthStore.getState().accessToken;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {

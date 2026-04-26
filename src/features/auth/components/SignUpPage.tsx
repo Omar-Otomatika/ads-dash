@@ -80,7 +80,7 @@ export default function SignUpPage() {
       if (signUp.status === "complete") {
         await signUp.finalize({
           navigate: (params) => {
-            navigate(params.decorateUrl("/"));
+            navigate(params.decorateUrl("/connections"));
           },
         });
       }

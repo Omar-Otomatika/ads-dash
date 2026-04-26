@@ -60,7 +60,7 @@ export default function SignInPage() {
       if (signIn.status === "complete") {
         await signIn.finalize({
           navigate: (params) => {
-            navigate(params.decorateUrl("/"));
+            navigate(params.decorateUrl("/connections"));
           }
         });
       } else {

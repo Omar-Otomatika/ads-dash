@@ -11,7 +11,7 @@ import {
 import { Trash2, Search, CircleFadingPlus, Link as LinkIcon, Loader2 } from "lucide-react";
 import { connectionsService } from "../services/connections-service";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const platformConfig = [
   {
@@ -20,6 +20,7 @@ const platformConfig = [
     description: "Connect Facebook and Instagram advertising accounts.",
     icon: CircleFadingPlus,
     color: "bg-[#f5f5f5]",
+    isAvailable: true,
   },
   {
     id: "google",
@@ -27,6 +28,7 @@ const platformConfig = [
     description: "Import Search, Display, and Video campaign metrics.",
     icon: Search,
     color: "bg-[#f5f5f5]",
+    isAvailable: true,
   },
   {
     id: "linkedin",
@@ -34,6 +36,7 @@ const platformConfig = [
     description: "Sync B2B audience targeting and lead gen data.",
     icon: LinkIcon,
     color: "bg-[#f5f5f5]",
+    isAvailable: true,
   },
   {
     id: "tiktok",
@@ -41,18 +44,35 @@ const platformConfig = [
     description: "Sync B2B audience targeting and lead gen data.",
     icon: LinkIcon,
     color: "bg-[#f5f5f5]",
+    isAvailable: false,
   },
 ];
 
 export function ConnectionsPage() {
   const [connectingId, setConnectingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: connectionsData, isLoading } = useQuery({
     queryKey: ['connections'],
     queryFn: () => connectionsService.getConnections(),
   });
 
-  const availablePlatforms = connectionsData?.data?.map(c => c.platform) || [];
+  const deleteMutation = useMutation({
+    mutationFn: (connectionId: string) => connectionsService.deleteConnection(connectionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connections'] });
+    },
+    onError: (error) => {
+      console.error("Failed to delete connection:", error);
+      alert("Failed to delete connection. Please try again.");
+    },
+  });
+
+  const handleDelete = async (connectionId: string) => {
+    if (window.confirm("Are you sure you want to delete this connection?")) {
+      deleteMutation.mutate(connectionId);
+    }
+  };
 
   const handleConnect = async (platformId: string) => {
     setConnectingId(platformId);
@@ -82,7 +102,7 @@ export function ConnectionsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {platformConfig.map((platform) => {
           const isConnecting = connectingId === platform.id;
-          const isAvailable = availablePlatforms.includes(platform.id);
+          const isConnected = connectionsData?.data?.some(c => c.platform === platform.id);
 
           return (
             <Card key={platform.id} className="p-6 flex flex-col items-center text-center border shadow-[0px_0px_0px_1px_rgba(34,42,53,0.08)] rounded-xl bg-white">
@@ -96,7 +116,23 @@ export function ConnectionsPage() {
                 {platform.description}
               </p>
               
-              {isAvailable ? (
+              {!platform.isAvailable ? (
+                <Button 
+                  disabled
+                  variant="outline"
+                  className="w-full text-[#71717A] border-[#E4E4E7] bg-[#F4F4F5] rounded-lg h-10 font-medium cursor-not-allowed"
+                >
+                  Coming Soon
+                </Button>
+              ) : isConnected ? (
+                <Button 
+                  disabled
+                  variant="outline"
+                  className="w-full text-green-600 border-green-100 bg-green-50 rounded-lg h-10 font-medium cursor-default"
+                >
+                  Connected
+                </Button>
+              ) : (
                 <Button 
                   onClick={() => handleConnect(platform.id)}
                   disabled={connectingId !== null}
@@ -110,14 +146,6 @@ export function ConnectionsPage() {
                   ) : (
                     "Connect"
                   )}
-                </Button>
-              ) : (
-                <Button 
-                  disabled
-                  variant="outline"
-                  className="w-full text-[#71717A] border-[#E4E4E7] bg-[#F4F4F5] rounded-lg h-10 font-medium cursor-not-allowed"
-                >
-                  Coming Soon
                 </Button>
               )}
             </Card>
@@ -167,8 +195,18 @@ export function ConnectionsPage() {
                         </span>
                       </TableCell>
                       <TableCell className="px-6 py-4 text-right">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#71717A] hover:text-red-600 hover:bg-red-50 transition-colors">
-                          <Trash2 className="h-4.5 w-4.5" />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleDelete(connection.id)}
+                          disabled={deleteMutation.isPending}
+                          className="h-8 w-8 text-[#71717A] hover:text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          {deleteMutation.isPending && deleteMutation.variables === connection.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4.5 w-4.5" />
+                          )}
                         </Button>
                       </TableCell>
                     </TableRow>

@@ -33,4 +33,8 @@ export const connectionsService = {
     });
     return response.data;
   },
+  deleteConnection: async (connectionId: string): Promise<{ success: boolean }> => {
+    const response = await api.delete<{ success: boolean }>(`/connections/${connectionId}`);
+    return response.data;
+  },
 };

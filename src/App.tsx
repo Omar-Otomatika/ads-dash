@@ -4,11 +4,14 @@ import { queryClient } from "@/lib/query-client";
 import { router } from "@/routes/AppRoutes";
 import { AuthSync } from "@/hooks/use-sync-auth";
 
+import { Toaster } from "@/components/ui/sonner";
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthSync />
       <RouterProvider router={router} />
+      <Toaster position="top-right" richColors />
     </QueryClientProvider>
   );
 }

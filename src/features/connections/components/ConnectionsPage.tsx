@@ -12,6 +12,17 @@ import { Trash2, Search, CircleFadingPlus, Link as LinkIcon, Loader2 } from "luc
 import { connectionsService } from "../services/connections-service";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const platformConfig = [
   {
@@ -50,6 +61,7 @@ const platformConfig = [
 
 export function ConnectionsPage() {
   const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: connectionsData, isLoading } = useQuery({
@@ -61,16 +73,23 @@ export function ConnectionsPage() {
     mutationFn: (connectionId: string) => connectionsService.deleteConnection(connectionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connections'] });
+      toast.success("Connection deleted successfully");
+      setDeleteId(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Failed to delete connection:", error);
-      alert("Failed to delete connection. Please try again.");
+      const message = error.response?.data?.message || "Failed to delete connection";
+      toast.error(message);
     },
   });
 
-  const handleDelete = async (connectionId: string) => {
-    if (window.confirm("Are you sure you want to delete this connection?")) {
-      deleteMutation.mutate(connectionId);
+  const handleDelete = (connectionId: string) => {
+    setDeleteId(connectionId);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteId) {
+      deleteMutation.mutate(deleteId);
     }
   };
 
@@ -80,8 +99,14 @@ export function ConnectionsPage() {
       const redirectPath = `${window.location.origin}/connections`;
       const { authUrl } = await connectionsService.createConnection(platformId, redirectPath);
       window.location.href = authUrl;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Failed to connect to ${platformId}:`, error);
+      const errorMessage = error.response?.data?.message || "Connection failed";
+      const errorDetail = error.response?.data?.error;
+      
+      toast.error(errorMessage, {
+        description: errorDetail,
+      });
       setConnectingId(null);
     }
   };
@@ -224,6 +249,37 @@ export function ConnectionsPage() {
           )}
         </Card>
       </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Connection</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this connection? This action will stop all active reporting and syncs for this platform.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmDelete();
+              }}
+              disabled={deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

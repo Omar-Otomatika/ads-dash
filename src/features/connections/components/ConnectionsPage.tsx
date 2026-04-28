@@ -24,6 +24,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
@@ -81,14 +89,12 @@ export function ConnectionsPage() {
   // Handle successful connection redirect
   useEffect(() => {
     if (searchParams.get("connection") === "success" && connectionsData?.data) {
-      // Find connections with multiple accounts or just the most recent one
       const lastConnection = connectionsData.data[0]; 
       if (lastConnection && lastConnection.adsAccounts.length > 0) {
         setAvailableAccounts(lastConnection.adsAccounts);
-        setSelectedAccountId(lastConnection.adsAccounts[0].id);
+        setSelectedAccountId(""); 
         setSelectionDialogOpen(true);
       }
-      // Clear URL params
       navigate("/connections", { replace: true });
     }
   }, [searchParams, connectionsData, navigate]);
@@ -118,8 +124,13 @@ export function ConnectionsPage() {
   };
 
   const handleSelectAccount = () => {
+    if (!selectedAccountId) {
+      toast.error("Please select an account first");
+      return;
+    }
+    const selected = availableAccounts.find(a => a.adsAccount.id === selectedAccountId);
     toast.success("Account selected successfully", {
-      description: `Targeting account ID: ${selectedAccountId}`
+      description: `Targeting account: ${selected?.adsAccount.accountName}`
     });
     setSelectionDialogOpen(false);
   };
@@ -223,8 +234,8 @@ export function ConnectionsPage() {
             <Table>
               <TableHeader className="bg-[rgba(250,250,250,0.5)]">
                 <TableRow className="hover:bg-transparent border-b">
-                  <TableHead className="px-6 py-4 text-[11px] font-black text-[#71717A] tracking-[0.05em] uppercase">PLATFORM</TableHead>
-                  <TableHead className="px-6 py-4 text-[11px] font-black text-[#71717A] tracking-[0.05em] uppercase">ACCOUNT DETAILS</TableHead>
+                  <TableHead className="px-6 py-4 text-[11px] font-black text-[#71717A] tracking-[0.05em] uppercase w-[100px]">PLATFORM</TableHead>
+                  <TableHead className="px-6 py-4 text-[11px] font-black text-[#71717A] tracking-[0.05em] uppercase">ACCOUNT</TableHead>
                   <TableHead className="px-6 py-4 text-[11px] font-black text-[#71717A] tracking-[0.05em] uppercase text-right">ACTIONS</TableHead>
                 </TableRow>
               </TableHeader>
@@ -232,23 +243,33 @@ export function ConnectionsPage() {
                 {connectionsData?.data?.map((connection) => {
                   const config = platformConfig.find(p => p.id === connection.platform);
                   const Icon = config?.icon || LinkIcon;
+                  const primaryAccount = connection.adsAccounts[0]?.adsAccount;
 
                   return (
                     <TableRow key={connection.id} className="hover:bg-gray-50/50 border-b last:border-0 transition-colors">
                       <TableCell className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 bg-[#F4F4F5] rounded flex items-center justify-center shadow-[inset_0_0_0_1px_rgba(34,42,53,0.08)]">
-                            <Icon className="h-3.5 w-3.5 text-[#111111]" />
+                          <div className="h-10 w-10 bg-[#F4F4F5] rounded-lg flex items-center justify-center shadow-[inset_0_0_0_1px_rgba(34,42,53,0.08)]">
+                            <Icon className="h-5 w-5 text-[#111111]" />
                           </div>
-                          <span className="text-base font-medium text-[#111111]">
+                          <span className="text-sm font-semibold text-[#111111] whitespace-nowrap">
                             {config?.name || connection.platform}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell className="px-6 py-4">
-                        <span className="text-base font-medium text-[#5E5E5E]">
-                          {connection.adsAccounts.length} Ad Accounts Syncing
-                        </span>
+                        {primaryAccount ? (
+                          <div className="flex flex-col">
+                            <span className="text-base font-semibold text-[#111111]">
+                              {primaryAccount.accountName}
+                            </span>
+                            <span className="text-xs text-[#71717A] font-mono">
+                              ID: {primaryAccount.accountId}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-[#71717A] italic">No account selected</span>
+                        )}
                       </TableCell>
                       <TableCell className="px-6 py-4 text-right">
                         <Button 
@@ -313,62 +334,63 @@ export function ConnectionsPage() {
       </AlertDialog>
 
       {/* Account Selection Dialog */}
-      <AlertDialog open={selectionDialogOpen} onOpenChange={setSelectionDialogOpen}>
-        <AlertDialogContent className="sm:max-w-[425px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Select Ad Account</AlertDialogTitle>
-            <AlertDialogDescription>
+      <Dialog open={selectionDialogOpen} onOpenChange={setSelectionDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Select Ad Account</DialogTitle>
+            <DialogDescription>
               We found multiple accounts associated with your connection. Please select the primary account you want to track.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+            </DialogDescription>
+          </DialogHeader>
           
-          <div className="py-4">
+          <div className="py-4 max-h-[400px] overflow-y-auto px-1">
             <RadioGroup 
               value={selectedAccountId} 
               onValueChange={setSelectedAccountId}
               className="space-y-3"
             >
-              {availableAccounts.map((account) => (
-                <div 
-                  key={account.id} 
-                  className={`flex items-center space-x-3 p-4 rounded-xl border transition-all cursor-pointer ${
-                    selectedAccountId === account.id 
-                    ? "border-black bg-gray-50 ring-1 ring-black" 
-                    : "border-gray-200 hover:border-gray-300"
-                  }`}
-                  onClick={() => setSelectedAccountId(account.id)}
-                >
-                  <RadioGroupItem value={account.id} id={account.id} className="sr-only" />
-                  <div className="flex-1">
-                    <Label htmlFor={account.id} className="text-sm font-semibold cursor-pointer block">
-                      {account.name}
-                    </Label>
-                    <span className="text-xs text-gray-500 font-mono">ID: {account.id}</span>
-                  </div>
-                  {selectedAccountId === account.id && (
-                    <div className="h-5 w-5 rounded-full bg-black flex items-center justify-center">
-                      <Check className="h-3 w-3 text-white" />
+              {availableAccounts.map((item) => {
+                const account = item.adsAccount;
+                return (
+                  <div 
+                    key={account.id} 
+                    className={`flex items-center space-x-3 p-4 rounded-xl border transition-all cursor-pointer ${
+                      selectedAccountId === account.id 
+                      ? "border-black bg-gray-50 ring-1 ring-black" 
+                      : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    onClick={() => setSelectedAccountId(account.id)}
+                  >
+                    <RadioGroupItem value={account.id} id={account.id} className="sr-only" />
+                    <div className="flex-1">
+                      <Label htmlFor={account.id} className="text-sm font-semibold cursor-pointer block">
+                        {account.accountName}
+                      </Label>
+                      <span className="text-xs text-gray-500 font-mono">ID: {account.accountId}</span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {selectedAccountId === account.id && (
+                      <div className="h-5 w-5 rounded-full bg-black flex items-center justify-center">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </RadioGroup>
           </div>
 
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectionDialogOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleSelectAccount();
-              }}
-              className="bg-[#242424] hover:bg-black text-white"
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectionDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleSelectAccount}
+              disabled={!selectedAccountId}
+              className="bg-[#242424] hover:bg-black text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Confirm Selection
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

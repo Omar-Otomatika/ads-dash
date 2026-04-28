@@ -5,8 +5,11 @@ export interface CreateConnectionResponse {
 }
 
 export interface AdsAccount {
-  id: string;
-  name: string;
+  adsAccount: {
+    id: string;
+    accountName: string;
+    accountId: string;
+  };
 }
 
 export interface Connection {

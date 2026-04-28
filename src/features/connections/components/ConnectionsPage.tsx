@@ -78,8 +78,15 @@ export function ConnectionsPage() {
   const queryClient = useQueryClient();
 
   const [selectionDialogOpen, setSelectionDialogOpen] = useState(false);
+  const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null);
   const [availableAccounts, setAvailableAccounts] = useState<AdsAccount[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+
+  // Local state for UI persistence of selected accounts
+  const [selectedAccountsMap, setSelectedAccountsMap] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('selected_ads_accounts');
+    return saved ? JSON.parse(saved) : {};
+  });
 
   const { data: connectionsData, isLoading } = useQuery({
     queryKey: ['connections'],
@@ -91,6 +98,7 @@ export function ConnectionsPage() {
     if (searchParams.get("connection") === "success" && connectionsData?.data) {
       const lastConnection = connectionsData.data[0]; 
       if (lastConnection && lastConnection.adsAccounts.length > 0) {
+        setActiveConnectionId(lastConnection.id);
         setAvailableAccounts(lastConnection.adsAccounts);
         setSelectedAccountId(""); 
         setSelectionDialogOpen(true);
@@ -101,8 +109,15 @@ export function ConnectionsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (connectionId: string) => connectionsService.deleteConnection(connectionId),
-    onSuccess: () => {
+    onSuccess: (_, connectionId) => {
       queryClient.invalidateQueries({ queryKey: ['connections'] });
+      
+      // Cleanup local mapping
+      const newMap = { ...selectedAccountsMap };
+      delete newMap[connectionId];
+      setSelectedAccountsMap(newMap);
+      localStorage.setItem('selected_ads_accounts', JSON.stringify(newMap));
+      
       toast.success("Connection deleted successfully");
       setDeleteId(null);
     },
@@ -124,15 +139,23 @@ export function ConnectionsPage() {
   };
 
   const handleSelectAccount = () => {
-    if (!selectedAccountId) {
+    if (!selectedAccountId || !activeConnectionId) {
       toast.error("Please select an account first");
       return;
     }
+    
     const selected = availableAccounts.find(a => a.adsAccount.id === selectedAccountId);
+    
+    // Persist selection locally
+    const newMap = { ...selectedAccountsMap, [activeConnectionId]: selectedAccountId };
+    setSelectedAccountsMap(newMap);
+    localStorage.setItem('selected_ads_accounts', JSON.stringify(newMap));
+
     toast.success("Account selected successfully", {
       description: `Targeting account: ${selected?.adsAccount.accountName}`
     });
     setSelectionDialogOpen(false);
+    setActiveConnectionId(null);
   };
 
   const handleConnect = async (platformId: string) => {
@@ -243,7 +266,14 @@ export function ConnectionsPage() {
                 {connectionsData?.data?.map((connection) => {
                   const config = platformConfig.find(p => p.id === connection.platform);
                   const Icon = config?.icon || LinkIcon;
-                  const primaryAccount = connection.adsAccounts[0]?.adsAccount;
+                  
+                  // Find selected account from map or fallback to first one
+                  const selectedId = selectedAccountsMap[connection.id];
+                  const accountItem = selectedId 
+                    ? connection.adsAccounts.find(a => a.adsAccount.id === selectedId)
+                    : connection.adsAccounts[0];
+                  
+                  const primaryAccount = accountItem?.adsAccount;
 
                   return (
                     <TableRow key={connection.id} className="hover:bg-gray-50/50 border-b last:border-0 transition-colors">

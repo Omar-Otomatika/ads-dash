@@ -8,11 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Trash2, Search, CircleFadingPlus, Link as LinkIcon, Loader2 } from "lucide-react";
-import { connectionsService } from "../services/connections-service";
-import { useState } from "react";
+import { Trash2, Search, CircleFadingPlus, Link as LinkIcon, Loader2, Check } from "lucide-react";
+import { connectionsService, type AdsAccount } from "../services/connections-service";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 const platformConfig = [
   {
@@ -62,12 +65,33 @@ const platformConfig = [
 export function ConnectionsPage() {
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const [selectionDialogOpen, setSelectionDialogOpen] = useState(false);
+  const [availableAccounts, setAvailableAccounts] = useState<AdsAccount[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
 
   const { data: connectionsData, isLoading } = useQuery({
     queryKey: ['connections'],
     queryFn: () => connectionsService.getConnections(),
   });
+
+  // Handle successful connection redirect
+  useEffect(() => {
+    if (searchParams.get("connection") === "success" && connectionsData?.data) {
+      // Find connections with multiple accounts or just the most recent one
+      const lastConnection = connectionsData.data[0]; 
+      if (lastConnection && lastConnection.adsAccounts.length > 0) {
+        setAvailableAccounts(lastConnection.adsAccounts);
+        setSelectedAccountId(lastConnection.adsAccounts[0].id);
+        setSelectionDialogOpen(true);
+      }
+      // Clear URL params
+      navigate("/connections", { replace: true });
+    }
+  }, [searchParams, connectionsData, navigate]);
 
   const deleteMutation = useMutation({
     mutationFn: (connectionId: string) => connectionsService.deleteConnection(connectionId),
@@ -91,6 +115,13 @@ export function ConnectionsPage() {
     if (deleteId) {
       deleteMutation.mutate(deleteId);
     }
+  };
+
+  const handleSelectAccount = () => {
+    toast.success("Account selected successfully", {
+      description: `Targeting account ID: ${selectedAccountId}`
+    });
+    setSelectionDialogOpen(false);
   };
 
   const handleConnect = async (platformId: string) => {
@@ -276,6 +307,64 @@ export function ConnectionsPage() {
               ) : (
                 "Delete"
               )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Account Selection Dialog */}
+      <AlertDialog open={selectionDialogOpen} onOpenChange={setSelectionDialogOpen}>
+        <AlertDialogContent className="sm:max-w-[425px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Select Ad Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              We found multiple accounts associated with your connection. Please select the primary account you want to track.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="py-4">
+            <RadioGroup 
+              value={selectedAccountId} 
+              onValueChange={setSelectedAccountId}
+              className="space-y-3"
+            >
+              {availableAccounts.map((account) => (
+                <div 
+                  key={account.id} 
+                  className={`flex items-center space-x-3 p-4 rounded-xl border transition-all cursor-pointer ${
+                    selectedAccountId === account.id 
+                    ? "border-black bg-gray-50 ring-1 ring-black" 
+                    : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  onClick={() => setSelectedAccountId(account.id)}
+                >
+                  <RadioGroupItem value={account.id} id={account.id} className="sr-only" />
+                  <div className="flex-1">
+                    <Label htmlFor={account.id} className="text-sm font-semibold cursor-pointer block">
+                      {account.name}
+                    </Label>
+                    <span className="text-xs text-gray-500 font-mono">ID: {account.id}</span>
+                  </div>
+                  {selectedAccountId === account.id && (
+                    <div className="h-5 w-5 rounded-full bg-black flex items-center justify-center">
+                      <Check className="h-3 w-3 text-white" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectionDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleSelectAccount();
+              }}
+              className="bg-[#242424] hover:bg-black text-white"
+            >
+              Confirm Selection
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

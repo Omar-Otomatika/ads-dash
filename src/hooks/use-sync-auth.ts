@@ -8,19 +8,25 @@ import { useAuthStore } from './use-auth-store';
  * (like axios interceptors) and handles social logins/reloads automatically.
  */
 export function useSyncAuth() {
-  const { userId, isLoaded } = useAuth();
+  const { userId, isLoaded, getToken } = useAuth();
   const setUserId = useAuthStore((state) => state.setUserId);
+  const setClerkToken = useAuthStore((state) => state.setClerkToken);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
   useEffect(() => {
-    if (isLoaded) {
-      if (userId) {
-        setUserId(userId);
-      } else {
-        clearAuth();
+    const sync = async () => {
+      if (isLoaded) {
+        if (userId) {
+          setUserId(userId);
+          const token = await getToken();
+          setClerkToken(token);
+        } else {
+          clearAuth();
+        }
       }
-    }
-  }, [userId, isLoaded, setUserId, clearAuth]);
+    };
+    sync();
+  }, [userId, isLoaded, setUserId, setClerkToken, clearAuth, getToken]);
 }
 
 /**

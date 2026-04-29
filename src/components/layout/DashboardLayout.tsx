@@ -15,6 +15,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Connections", href: "/connections", icon: Link2 },
+  { name: "Collaborators", href: "/collaborators", icon: Settings },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

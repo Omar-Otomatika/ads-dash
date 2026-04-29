@@ -5,6 +5,7 @@ import SignUpPage from "@/features/auth/components/SignUpPage";
 import { AuthenticateWithRedirectCallback } from "@clerk/react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ConnectionsPage } from "@/features/connections/components/ConnectionsPage";
+import { CollaboratorsPage } from "@/features/collaborators/components/CollaboratorsPage";
 
 export const router = createBrowserRouter([
   {
@@ -28,6 +29,14 @@ export const router = createBrowserRouter([
     element: (
       <DashboardLayout>
         <ConnectionsPage />
+      </DashboardLayout>
+    ),
+  },
+  {
+    path: "/collaborators",
+    element: (
+      <DashboardLayout>
+        <CollaboratorsPage />
       </DashboardLayout>
     ),
   },

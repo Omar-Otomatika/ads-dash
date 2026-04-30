@@ -9,7 +9,6 @@ import {
   Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useInitializeAuth } from "@/hooks/use-initialize-auth";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -21,7 +20,6 @@ const navigation = [
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  useInitializeAuth();
 
   return (
     <div className="min-h-screen bg-[#FDF8F8] flex flex-col">

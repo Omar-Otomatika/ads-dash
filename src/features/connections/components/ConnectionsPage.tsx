@@ -11,6 +11,7 @@ import {
 import { Trash2, Search, CircleFadingPlus, Link as LinkIcon, Loader2, Check } from "lucide-react";
 import { connectionsService, type AdsAccount } from "../services/connections-service";
 import { useState, useEffect } from "react";
+import { useAuthStore } from "@/hooks/use-auth-store";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -76,6 +77,7 @@ export function ConnectionsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const userId = useAuthStore((state) => state.userId);
 
   const [selectionDialogOpen, setSelectionDialogOpen] = useState(false);
   const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null);
@@ -159,10 +161,14 @@ export function ConnectionsPage() {
   };
 
   const handleConnect = async (platformId: string) => {
+    if (!userId) {
+      toast.error("User session not found. Please sign in again.");
+      return;
+    }
     setConnectingId(platformId);
     try {
       const redirectPath = `${window.location.origin}/connections`;
-      const { authUrl } = await connectionsService.createConnection(platformId, redirectPath);
+      const { authUrl } = await connectionsService.createConnection(platformId, redirectPath, userId);
       window.location.href = authUrl;
     } catch (error: any) {
       console.error(`Failed to connect to ${platformId}:`, error);

@@ -1,62 +1,26 @@
 import { supabase } from './supabase';
-import { useAuthStore } from '@/hooks/use-auth-store';
 
 /**
- * Proxy-based API client for Adlyfy.
- * Resolves CORS and secures API keys via Supabase Edge Functions.
+ * specialized API client for Adlyfy.
+ * Uses specialized Edge Functions per feature.
+ * The generic 'adlyfy-proxy' has been removed.
  */
 const api = {
-  // Helper to get headers for the Edge Function call
-  _getInvokeOptions: (method: string, path: string, payload?: any) => {
-    const state = useAuthStore.getState();
-    const clerkToken = state.clerkToken;
-    const adlyfyToken = state.accessToken;
-
-    return {
-      headers: clerkToken ? { Authorization: `Bearer ${clerkToken}` } : {},
-      body: { 
-        method, 
-        path, 
-        accessToken: adlyfyToken, // Pass Adlyfy token to proxy
-        ...payload 
-      }
-    };
+  get: async <T>(_path: string, _config?: any): Promise<{ data: T }> => {
+    // TODO: Implement specialized getters (e.g., supabase.functions.invoke('adlyfy-get-connections'))
+    throw new Error("Generic GET proxy removed. Use specialized services.");
   },
 
-  get: async <T>(path: string, config?: any): Promise<{ data: T }> => {
-    const { data, error } = await supabase.functions.invoke(
-      'adlyfy-proxy', 
-      api._getInvokeOptions('GET', path, { params: config?.params })
-    );
-    if (error) throw error;
-    return { data: data as T };
+  post: async <T>(_path: string, _body?: any, _config?: any): Promise<{ data: T }> => {
+    throw new Error("Generic POST proxy removed. Use specialized services.");
   },
 
-  post: async <T>(path: string, body?: any, config?: any): Promise<{ data: T }> => {
-    const { data, error } = await supabase.functions.invoke(
-      'adlyfy-proxy', 
-      api._getInvokeOptions('POST', path, { data: body, params: config?.params })
-    );
-    if (error) throw error;
-    return { data: data as T };
+  put: async <T>(_path: string, _body?: any, _config?: any): Promise<{ data: T }> => {
+    throw new Error("Generic PUT proxy removed. Use specialized services.");
   },
 
-  put: async <T>(path: string, body?: any, config?: any): Promise<{ data: T }> => {
-    const { data, error } = await supabase.functions.invoke(
-      'adlyfy-proxy', 
-      api._getInvokeOptions('PUT', path, { data: body, params: config?.params })
-    );
-    if (error) throw error;
-    return { data: data as T };
-  },
-
-  delete: async <T>(path: string, config?: any): Promise<{ data: T }> => {
-    const { data, error } = await supabase.functions.invoke(
-      'adlyfy-proxy', 
-      api._getInvokeOptions('DELETE', path, { params: config?.params })
-    );
-    if (error) throw error;
-    return { data: data as T };
+  delete: async <T>(_path: string, _config?: any): Promise<{ data: T }> => {
+    throw new Error("Generic DELETE proxy removed. Use specialized services.");
   },
 };
 

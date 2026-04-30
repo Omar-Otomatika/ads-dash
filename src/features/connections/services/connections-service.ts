@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 
 export interface CreateConnectionResponse {
   authUrl: string;
@@ -29,12 +30,20 @@ export const connectionsService = {
     const response = await api.get<GetConnectionsResponse>('/connections');
     return response.data;
   },
-  createConnection: async (platform: string, redirect: string): Promise<CreateConnectionResponse> => {
-    const response = await api.post<CreateConnectionResponse>('/connections', {
-      platform,
-      redirect,
+  createConnection: async (platform: string, redirect: string, userId: string): Promise<CreateConnectionResponse> => {
+    const { data, error } = await supabase.functions.invoke('adlyfy-ads-connection', {
+      body: { platform, redirect },
+      headers: {
+        'x-user-id': userId
+      }
     });
-    return response.data;
+
+    if (error) {
+      console.error("Edge Function error:", error);
+      throw error;
+    }
+
+    return data;
   },
   deleteConnection: async (connectionId: string): Promise<{ success: boolean }> => {
     const response = await api.delete<{ success: boolean }>(`/connections/${connectionId}`);

@@ -91,17 +91,29 @@ export function ConnectionsPage() {
   });
 
   const { data: connectionsData, isLoading } = useQuery({
-    queryKey: ['connections'],
-    queryFn: () => connectionsService.getConnections(),
+    queryKey: ['connections', userId],
+    queryFn: () => userId ? connectionsService.getConnections(userId) : Promise.reject("No user ID"),
+    enabled: !!userId,
   });
+
+  // Invalidate queries when returning from successful connection
+  useEffect(() => {
+    if (searchParams.get("connection") === "success") {
+      queryClient.invalidateQueries({ queryKey: ['connections'] });
+    }
+  }, [searchParams, queryClient]);
 
   // Handle successful connection redirect
   useEffect(() => {
+    const platform = searchParams.get("platform");
     if (searchParams.get("connection") === "success" && connectionsData?.data) {
-      const lastConnection = connectionsData.data[0]; 
-      if (lastConnection && lastConnection.adsAccounts.length > 0) {
-        setActiveConnectionId(lastConnection.id);
-        setAvailableAccounts(lastConnection.adsAccounts);
+      const connection = platform 
+        ? connectionsData.data.find(c => c.platform === platform)
+        : connectionsData.data[0];
+
+      if (connection && connection.adsAccounts.length > 0) {
+        setActiveConnectionId(connection.id);
+        setAvailableAccounts(connection.adsAccounts);
         setSelectedAccountId(""); 
         setSelectionDialogOpen(true);
       }
@@ -110,7 +122,7 @@ export function ConnectionsPage() {
   }, [searchParams, connectionsData, navigate]);
 
   const deleteMutation = useMutation({
-    mutationFn: (connectionId: string) => connectionsService.deleteConnection(connectionId),
+    mutationFn: (connectionId: string) => userId ? connectionsService.deleteConnection(connectionId, userId) : Promise.reject("No user ID"),
     onSuccess: (_, connectionId) => {
       queryClient.invalidateQueries({ queryKey: ['connections'] });
       
@@ -167,7 +179,7 @@ export function ConnectionsPage() {
     }
     setConnectingId(platformId);
     try {
-      const redirectPath = `${window.location.origin}/connections`;
+      const redirectPath = `${window.location.origin}/connections?platform=${platformId}`;
       const { authUrl } = await connectionsService.createConnection(platformId, redirectPath, userId);
       window.location.href = authUrl;
     } catch (error: any) {

@@ -90,47 +90,70 @@ export function ConnectionsPage() {
     return saved ? JSON.parse(saved) : {};
   });
 
-  const { data: connectionsData, isLoading } = useQuery({
+  const { data: connectionsData, isLoading, refetch } = useQuery({
     queryKey: ['connections', userId],
     queryFn: () => userId ? connectionsService.getConnections(userId) : Promise.reject("No user ID"),
     enabled: !!userId,
   });
 
-  // Invalidate queries when returning from successful connection
-  useEffect(() => {
-    if (searchParams.get("connection") === "success") {
-      queryClient.invalidateQueries({ queryKey: ['connections'] });
-    }
-  }, [searchParams, queryClient]);
-
   // Handle successful connection redirect
   useEffect(() => {
-    const platform = searchParams.get("platform");
-    if (searchParams.get("connection") === "success" && connectionsData?.data) {
-      const connection = platform 
-        ? connectionsData.data.find(c => c.platform === platform)
-        : connectionsData.data[0];
-
-      if (connection && connection.adsAccounts.length > 0) {
-        setActiveConnectionId(connection.id);
-        setAvailableAccounts(connection.adsAccounts);
-        setSelectedAccountId(""); 
-        setSelectionDialogOpen(true);
+    const handleSuccessRedirect = async () => {
+      const fullQuery = window.location.search;
+      // Handle potential double encoding or malformed query strings
+      const isSuccess = fullQuery.includes("connection=success") || searchParams.get("connection") === "success";
+      
+      let platform = searchParams.get("platform");
+      if (platform?.includes("?")) {
+        platform = platform.split("?")[0];
       }
-      navigate("/connections", { replace: true });
-    }
-  }, [searchParams, connectionsData, navigate]);
+
+      if (isSuccess && userId) {
+        // 1. Force a fresh fetch to ensure the new connection is present
+        const { data: freshData } = await refetch();
+        
+        if (freshData?.data) {
+          const connection = platform 
+            ? freshData.data.find(c => c.platform === platform)
+            : freshData.data[0];
+
+          if (connection && connection.adsAccounts.length > 0) {
+            // 2. Clear any existing local selection for this ID to force fresh choice
+            setSelectedAccountsMap((prev) => {
+              const next = { ...prev };
+              delete next[connection.id];
+              localStorage.setItem('selected_ads_accounts', JSON.stringify(next));
+              return next;
+            });
+
+            // 3. Open the selection dialog
+            setActiveConnectionId(connection.id);
+            setAvailableAccounts(connection.adsAccounts);
+            setSelectedAccountId(""); 
+            setSelectionDialogOpen(true);
+          }
+        }
+        
+        // 4. Finally clear the URL parameters to prevent re-triggering
+        navigate("/connections", { replace: true });
+      }
+    };
+
+    handleSuccessRedirect();
+  }, [searchParams, userId, refetch, navigate]);
 
   const deleteMutation = useMutation({
     mutationFn: (connectionId: string) => userId ? connectionsService.deleteConnection(connectionId, userId) : Promise.reject("No user ID"),
     onSuccess: (_, connectionId) => {
       queryClient.invalidateQueries({ queryKey: ['connections'] });
       
-      // Cleanup local mapping
-      const newMap = { ...selectedAccountsMap };
-      delete newMap[connectionId];
-      setSelectedAccountsMap(newMap);
-      localStorage.setItem('selected_ads_accounts', JSON.stringify(newMap));
+      // Cleanup local mapping using functional update to avoid stale closure
+      setSelectedAccountsMap((prev) => {
+        const next = { ...prev };
+        delete next[connectionId];
+        localStorage.setItem('selected_ads_accounts', JSON.stringify(next));
+        return next;
+      });
       
       toast.success("Connection deleted successfully");
       setDeleteId(null);
@@ -285,11 +308,11 @@ export function ConnectionsPage() {
                   const config = platformConfig.find(p => p.id === connection.platform);
                   const Icon = config?.icon || LinkIcon;
                   
-                  // Find selected account from map or fallback to first one
+                  // Find selected account from map
                   const selectedId = selectedAccountsMap[connection.id];
                   const accountItem = selectedId 
                     ? connection.adsAccounts.find(a => a.adsAccount.id === selectedId)
-                    : connection.adsAccounts[0];
+                    : null;
                   
                   const primaryAccount = accountItem?.adsAccount;
 
@@ -316,23 +339,40 @@ export function ConnectionsPage() {
                             </span>
                           </div>
                         ) : (
-                          <span className="text-sm text-[#71717A] italic">No account selected</span>
+                          <span className="text-sm text-[#71717A] italic">No Accounts Selected</span>
                         )}
                       </TableCell>
                       <TableCell className="px-6 py-4 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleDelete(connection.id)}
-                          disabled={deleteMutation.isPending}
-                          className="h-8 w-8 text-[#71717A] hover:text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          {deleteMutation.isPending && deleteMutation.variables === connection.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4.5 w-4.5" />
+                        <div className="flex items-center justify-end gap-2">
+                          {connection.adsAccounts.length > 0 && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="text-xs text-[#71717A]"
+                              onClick={() => {
+                                setActiveConnectionId(connection.id);
+                                setAvailableAccounts(connection.adsAccounts);
+                                setSelectedAccountId(selectedId || "");
+                                setSelectionDialogOpen(true);
+                              }}
+                            >
+                              Change
+                            </Button>
                           )}
-                        </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDelete(connection.id)}
+                            disabled={deleteMutation.isPending}
+                            className="h-8 w-8 text-[#71717A] hover:text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            {deleteMutation.isPending && deleteMutation.variables === connection.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4.5 w-4.5" />
+                            )}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

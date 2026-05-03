@@ -6,6 +6,7 @@ import { AuthenticateWithRedirectCallback } from "@clerk/react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ConnectionsPage } from "@/features/connections/components/ConnectionsPage";
 import { CollaboratorsPage } from "@/features/collaborators/components/CollaboratorsPage";
+import { DashboardPage } from "@/features/dashboard/components/DashboardPage";
 
 export const router = createBrowserRouter([
   {
@@ -44,7 +45,7 @@ export const router = createBrowserRouter([
     path: "/dashboard",
     element: (
       <DashboardLayout>
-        <div className="text-2xl font-semibold">Dashboard Coming Soon</div>
+        <DashboardPage />
       </DashboardLayout>
     ),
   },

@@ -3,7 +3,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useSignIn } from "@clerk/react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuthStore } from "@/hooks/use-auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +27,6 @@ const ASSETS = {
 export default function SignInPage() {
   const { signIn, fetchStatus } = useSignIn();
   const navigate = useNavigate();
-  const setUserId = useAuthStore((state) => state.setUserId);
 
   const isFetching = fetchStatus === "fetching";
 
@@ -60,10 +58,6 @@ export default function SignInPage() {
       }
 
       if (signIn.status === "complete") {
-        console.log('sing-in res: ', res)
-        if (res.createdUserId) {
-          setUserId(res.createdUserId);
-        }
         await signIn.finalize({
           navigate: (params) => {
             navigate(params.decorateUrl("/connections"));

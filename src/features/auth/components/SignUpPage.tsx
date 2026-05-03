@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { useSignUp } from "@clerk/react";
 import { isClerkAPIResponseError } from "@clerk/react/errors";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAuthStore } from "@/hooks/use-auth-store";
 import { Building2, Loader2, Network } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -24,7 +23,6 @@ type SignUpValues = z.infer<typeof signUpSchema>;
 
 export default function SignUpPage() {
   const { signUp, fetchStatus, errors: clerkErrors } = useSignUp();
-  const setUserId = useAuthStore((state) => state.setUserId);
   const [verifying, setVerifying] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -80,10 +78,6 @@ export default function SignUpPage() {
       });
 
       if (signUp.status === "complete") {
-        
-        if (signUp.createdUserId) {
-          setUserId(signUp.createdUserId);
-        }
         await signUp.finalize({
           navigate: (params) => {
             navigate(params.decorateUrl("/connections"));

@@ -72,7 +72,7 @@ export function CollaboratorsPage() {
 
     setIsInviting(true);
     try {
-      await organization.inviteMember({
+      await organization?.inviteMember({
         emailAddress: email,
         role: role,
       });

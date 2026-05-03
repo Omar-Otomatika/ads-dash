@@ -28,6 +28,12 @@ const AVAILABLE_METRICS = [
   { id: 'metrics.ctr', label: 'CTR', suffix: '%' },
   { id: 'metrics.average_cpc', label: 'Avg. CPC', prefix: '$', isMicros: true },
   { id: 'metrics.conversions_from_interactions_rate', label: 'Conv. Rate', suffix: '%' },
+  { id: 'metrics.cost_per_conversion', label: 'Cost / Conv.', prefix: '$', isMicros: true },
+  { id: 'metrics.conversions_value', label: 'Conv. Value', prefix: '$' },
+  { id: 'metrics.all_conversions', label: 'All Conv.', icon: Check },
+  { id: 'metrics.view_through_conversions', label: 'View-thru Conv.', icon: Eye },
+  { id: 'metrics.video_views', label: 'Video Views', icon: Eye },
+  { id: 'metrics.search_impression_share', label: 'Search Imp. Share', suffix: '%' },
 ];
 
 const DEFAULT_METRICS = ['metrics.clicks', 'metrics.impressions', 'metrics.cost_micros'];

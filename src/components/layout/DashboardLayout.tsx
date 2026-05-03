@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { UserButton } from "@clerk/react";
+import { UserButton, useOrganization, useOrganizationList } from "@clerk/react";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -9,6 +9,13 @@ import {
   Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -20,6 +27,12 @@ const navigation = [
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { organization } = useOrganization();
+  const { isLoaded, setActive, userMemberships } = useOrganizationList({
+    userMemberships: {
+      infinite: true,
+    },
+  });
 
   return (
     <div className="min-h-screen bg-[#FDF8F8] flex flex-col">
@@ -40,8 +53,38 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-64 border-r bg-white flex flex-col pt-4 shrink-0 shadow-[1px_0px_0px_rgba(34,42,53,0.08)]">
-          <nav className="flex-1 px-4 space-y-2">
+        <aside className="w-64 border-r bg-white flex flex-col shrink-0 shadow-[1px_0px_0px_rgba(34,42,53,0.08)]">
+          <div className="p-4 border-b mb-2">
+            {isLoaded && userMemberships.data && (
+              <Select
+                value={organization?.id}
+                onValueChange={(value) => setActive({ organization: value })}
+              >
+                <SelectTrigger className="w-full h-10 border-gray-200 bg-white hover:bg-gray-50 transition-all focus:ring-0 focus:ring-offset-0">
+                  <SelectValue placeholder="Select Organization">
+                    {organization?.name}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {userMemberships.data.map((mem) => (
+                    <SelectItem key={mem.organization.id} value={mem.organization.id}>
+                      <div className="flex items-center gap-2">
+                        {mem.organization.imageUrl && (
+                          <img 
+                            src={mem.organization.imageUrl} 
+                            alt="" 
+                            className="w-4 h-4 rounded-sm"
+                          />
+                        )}
+                        <span className="truncate">{mem.organization.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <nav className="flex-1 px-4 space-y-2 py-2">
             {navigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (

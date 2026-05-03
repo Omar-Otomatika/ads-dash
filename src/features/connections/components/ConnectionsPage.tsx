@@ -10,11 +10,12 @@ import {
 } from "@/components/ui/table";
 import { Trash2, Search, CircleFadingPlus, Link as LinkIcon, Loader2, Check } from "lucide-react";
 import { connectionsService, type AdsAccount } from "../services/connections-service";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuthStore } from "@/hooks/use-auth-store";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useOrganization } from "@clerk/react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -145,7 +146,7 @@ export function ConnectionsPage() {
   const deleteMutation = useMutation({
     mutationFn: (connectionId: string) => userId ? connectionsService.deleteConnection(connectionId, userId) : Promise.reject("No user ID"),
     onSuccess: (_, connectionId) => {
-      queryClient.invalidateQueries({ queryKey: ['connections'] });
+      queryClient.invalidateQueries({ queryKey: ['connections', userId] });
       
       // Cleanup local mapping using functional update to avoid stale closure
       setSelectedAccountsMap((prev) => {

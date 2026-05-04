@@ -12,16 +12,6 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <LandingPage />,
-    loader: () => {
-      const redirect = sessionStorage.redirect;
-      if (redirect) {
-        delete sessionStorage.redirect;
-        if (redirect !== "/" && redirect !== "/ads-dash/") {
-          window.history.replaceState(null, "", redirect);
-        }
-      }
-      return null;
-    }
   },
   {
     path: "/sign-in",

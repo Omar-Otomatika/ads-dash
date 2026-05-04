@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "npm run build",     
+    "deploy": "gh-pages -d dist -o github"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
@@ -24,6 +26,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "gh-pages": "^6.3.0",
     "lucide-react": "^1.8.0",
     "next-themes": "^0.4.6",
     "react": "^19.2.4",

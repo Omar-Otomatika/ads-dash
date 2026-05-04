@@ -8,45 +8,50 @@ import { ConnectionsPage } from "@/features/connections/components/ConnectionsPa
 import { CollaboratorsPage } from "@/features/collaborators/components/CollaboratorsPage";
 import { DashboardPage } from "@/features/dashboard/components/DashboardPage";
 
-export const router = createBrowserRouter([
+export const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <LandingPage />,
+    },
+    {
+      path: "/sign-in",
+      element: <SignInPage />,
+    },
+    {
+      path: "/sign-up",
+      element: <SignUpPage />,
+    },
+    {
+      path: "/sso-callback",
+      element: <AuthenticateWithRedirectCallback />,
+    },
+    {
+      path: "/connections",
+      element: (
+        <DashboardLayout>
+          <ConnectionsPage />
+        </DashboardLayout>
+      ),
+    },
+    {
+      path: "/collaborators",
+      element: (
+        <DashboardLayout>
+          <CollaboratorsPage />
+        </DashboardLayout>
+      ),
+    },
+    {
+      path: "/dashboard",
+      element: (
+        <DashboardLayout>
+          <DashboardPage />
+        </DashboardLayout>
+      ),
+    },
+  ],
   {
-    path: "/",
-    element: <LandingPage />,
+    basename: "/ads-dash/",
   },
-  {
-    path: "/sign-in",
-    element: <SignInPage />,
-  },
-  {
-    path: "/sign-up",
-    element: <SignUpPage />,
-  },
-  {
-    path: "/sso-callback",
-    element: <AuthenticateWithRedirectCallback />,
-  },
-  {
-    path: "/connections",
-    element: (
-      <DashboardLayout>
-        <ConnectionsPage />
-      </DashboardLayout>
-    ),
-  },
-  {
-    path: "/collaborators",
-    element: (
-      <DashboardLayout>
-        <CollaboratorsPage />
-      </DashboardLayout>
-    ),
-  },
-  {
-    path: "/dashboard",
-    element: (
-      <DashboardLayout>
-        <DashboardPage />
-      </DashboardLayout>
-    ),
-  },
-]);
+);

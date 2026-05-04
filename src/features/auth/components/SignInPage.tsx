@@ -80,10 +80,9 @@ export default function SignInPage() {
   const handleGoogleSignIn = async () => {
     if (!signIn) return;
     try {
-      await signIn.authenticateWithRedirect({
+      await signIn.create({
         strategy: "oauth_google",
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/",
       });
     } catch (err: any) {
       console.error(err);

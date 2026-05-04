@@ -33,7 +33,7 @@ export const AuthSync = () => {
       // 4. Fallback to searching memberships for an 'admin' role
       const adminFromMemberships = memberships.data.find((m) => m.role === "org:admin");
 
-      const adminUserId = adminIdFromOrg || adminFromMemberships?.publicUserData.userId;
+      const adminUserId = adminIdFromOrg || adminFromMemberships?.publicUserData?.userId;
 
       if (adminUserId) {
         targetUserId = adminUserId;

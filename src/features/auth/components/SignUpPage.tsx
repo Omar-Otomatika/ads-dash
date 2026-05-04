@@ -104,7 +104,7 @@ export default function SignUpPage() {
   };
 
   // Combine manual error with Clerk's error object if present
-  const displayError = error || clerkErrors?.message;
+  const displayError = error || (clerkErrors as any)?.message;
 
   if (verifying) {
     return (

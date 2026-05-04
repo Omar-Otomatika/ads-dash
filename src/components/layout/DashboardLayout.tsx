@@ -3,7 +3,6 @@ import { UserButton, useOrganization, useOrganizationList } from "@clerk/react";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
-  BarChart3, 
   Link2, 
   Settings,
   Bell
@@ -19,10 +18,8 @@ import {
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Connections", href: "/connections", icon: Link2 },
   { name: "Collaborators", href: "/collaborators", icon: Settings },
-  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {

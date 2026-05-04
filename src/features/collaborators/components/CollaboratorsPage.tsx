@@ -117,12 +117,12 @@ export function CollaboratorsPage() {
 
   const activeMembers = memberships?.data?.map(m => ({
     id: m.id,
-    name: `${m.publicUserData.firstName || ""} ${m.publicUserData.lastName || ""}`.trim() || m.publicUserData.identifier,
-    email: m.publicUserData.identifier,
+    name: `${m.publicUserData?.firstName || ""} ${m.publicUserData?.lastName || ""}`.trim() || m.publicUserData?.identifier || "Unknown",
+    email: m.publicUserData?.identifier || "N/A",
     role: m.role === "org:admin" ? "ADMIN" : "MEMBER",
     status: "Active",
-    avatar: m.publicUserData.imageUrl,
-    isSelf: m.publicUserData.userId === user?.id
+    avatar: m.publicUserData?.imageUrl || "",
+    isSelf: m.publicUserData?.userId === user?.id
   })) || [];
 
   const pendingInvitations = invitations?.data?.map(i => ({

@@ -10,12 +10,11 @@ import {
 } from "@/components/ui/table";
 import { Trash2, Search, CircleFadingPlus, Link as LinkIcon, Loader2, Check } from "lucide-react";
 import { connectionsService, type AdsAccount } from "../services/connections-service";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/hooks/use-auth-store";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useOrganization } from "@clerk/react";
 import {
   AlertDialog,
   AlertDialogAction,

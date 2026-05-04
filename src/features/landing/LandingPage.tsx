@@ -83,8 +83,8 @@ export function LandingPage() {
             Consolidate your marketing spend, track real-time performance, and unlock AI-driven insights without the complexity of traditional BI tools.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Button asChild size="lg" className="relative shadow-cal-inset h-12 px-8 text-base">
-              <Link to="/sign-up">Start Your Free Trial</Link>
+            <Button size="lg" className="relative shadow-cal-inset h-12 px-8 text-base">
+              Start Free Trial
             </Button>
             <Button size="lg" variant="outline" className="h-12 px-8 text-base shadow-sm">
               Book a Demo
@@ -198,8 +198,8 @@ export function LandingPage() {
               Join over 2,000+ high-growth marketing teams today. No credit card required to start.
             </p>
             <div className="mt-10 flex flex-wrap justify-center gap-4">
-              <Button asChild size="lg" className="h-14 px-10 text-lg shadow-lg">
-                <Link to="/sign-up">Get Started Now</Link>
+              <Button size="lg" className="h-14 px-10 text-lg shadow-lg">
+                Get Started Now
               </Button>
               <Button size="lg" variant="outline" className="h-14 px-10 text-lg shadow-sm">Talk to Sales</Button>
             </div>

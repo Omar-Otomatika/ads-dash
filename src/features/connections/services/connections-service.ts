@@ -1,4 +1,3 @@
-import api from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
 export interface CreateConnectionResponse {

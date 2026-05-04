@@ -3,11 +3,11 @@ import { useAuthStore } from "@/hooks/use-auth-store";
 import { useQuery } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboard-service";
 import { connectionsService } from "@/features/connections/services/connections-service";
-import { Loader2, TrendingUp, MousePointer2, Eye, Plus, Check, Settings2 } from "lucide-react";
+import { Loader2, TrendingUp, MousePointer2, Eye, Check, Settings2 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { type DateRange } from "react-day-picker";
-import { subDays, format } from "date-fns";
+import { subDays } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -157,7 +157,7 @@ export function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           <Dialog onOpenChange={(open) => open && setTempMetrics(selectedMetrics)}>
-            <DialogTrigger asChild>
+            <DialogTrigger>
               <Button variant="outline" className="h-11 px-4 border-gray-200 rounded-xl bg-white hover:bg-gray-50 gap-2">
                 <Settings2 className="w-4 h-4" />
                 Customize Insights

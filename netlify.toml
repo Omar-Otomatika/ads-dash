@@ -1,6 +1,6 @@
 [build]
-  command = "cd frontend && bun install && bun run build"
-  publish = "frontend/dist"
+  command = "bun install && bun run build"
+  publish = "./dist"
 
 [[headers]]
   for = "/*.js"

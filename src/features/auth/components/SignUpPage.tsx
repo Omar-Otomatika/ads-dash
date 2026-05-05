@@ -80,7 +80,7 @@ export default function SignUpPage() {
       if (signUp.status === "complete") {
         await signUp.finalize({
           navigate: (params) => {
-            navigate(params.decorateUrl(`${import.meta.env.BASE_URL}connections`));
+            navigate(params.decorateUrl("/connections"));
           },
         });
       }

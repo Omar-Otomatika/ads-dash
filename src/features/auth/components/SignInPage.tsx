@@ -60,7 +60,7 @@ export default function SignInPage() {
       if (signIn.status === "complete") {
         await signIn.finalize({
           navigate: (params) => {
-            navigate(params.decorateUrl("/connections"));
+            navigate(params.decorateUrl(`${import.meta.env.BASE_URL}connections`));
           }
         });
       } else {
@@ -82,7 +82,7 @@ export default function SignInPage() {
     try {
       await signIn.create({
         strategy: "oauth_google",
-        redirectUrl: "/sso-callback",
+        redirectUrl: `${window.location.origin}${import.meta.env.BASE_URL}sso-callback`,
       });
     } catch (err: any) {
       console.error(err);

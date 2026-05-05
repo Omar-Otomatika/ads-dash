@@ -52,6 +52,6 @@ export const router = createBrowserRouter(
     },
   ],
   {
-    basename: "/ads-dash/",
+    basename: import.meta.env.BASE_URL,
   },
 );
